@@ -1,0 +1,26 @@
+{
+  "description": "Simple Conflux Loader module example",
+
+  "fields": [
+    {
+      "field_name": "heading",
+      "html": "heading.html",
+      "css": "heading.css",
+      "javascript": "heading.js"
+    }
+  ],
+
+  "instruments": [
+    {
+      "instrument_name": "form_1",
+      "javascript": "instrument_hook.js"
+    }
+  ],
+
+  "pages": [
+    {
+      "page_path": "surveys/index.php",
+      "javascript": "page_hook.js"
+    }
+  ]
+}
