@@ -1,0 +1,30 @@
+{
+  "name": "Conflux Loader",
+  "namespace": "OSUWMC\\ConfluxLoaderModule",
+  "description": "The Conflux Loader loads and injects user scripts from a configurable location.",
+  "framework-version": 15,
+  "authors": [
+    {
+      "name": "Kyle Kerslake",
+      "email": "kers30@osumc.edu",
+      "institution": "The Ohio State University Wexner Medical Center"
+    }
+  ],
+
+  "system-settings": [
+    {
+      "key": "shazam-module-name",
+      "name": "<b>Prefix of the Shazam External Module:</b><br /><br /><u>Example:</u>&nbsp;If the Shazam EM is under directory <code>shazam_v1.2.3</code>, then the prefix to specify here is <code>shazam</code>",
+      "type": "text",
+      "required": true
+    }
+  ],
+
+  "project-settings": [
+    {
+      "key": "loader-target-directory",
+      "name": "Directory to load module from",
+      "type": "text"
+    }
+  ]
+}
