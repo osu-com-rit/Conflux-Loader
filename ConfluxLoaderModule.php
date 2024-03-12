@@ -41,6 +41,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     function getLoaderConfig($key = null) {
         $loaderDirectory = $this->getLoaderDirectory();
         $loaderConfigPath = $loaderDirectory . '/loader_config.json';
+        // TODO: warn the user of a broken JSON file
         $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
         return $key ? $loaderConfig[$key] : $loaderConfig;
     }
@@ -65,6 +66,9 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $loadedFiles = array();
 
         foreach ($configEntries as $entry) {
+            // JSMO is a thing that JSI documents -- I think it provides a
+            // dynamic content hook based on language selection (and other
+            // reload triggers). Not sure if we use it, but it's available.
             if ($entry['use_jsmo']) {
                 $this->initializeJavascriptModuleObject();
             }
