@@ -9,10 +9,20 @@ use \ExternalModules\ExternalModules as ExternalModules;
 
 class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
+    public function __construct() {
+        parent::__construct();
+
+        $pid = $this->getProjectId();
+        $systemPathPrefix = $this->getSystemSetting('path-prefix');
+        error_log("Conflux Loader initialized for pid=$pid"
+                  . ($systemPathPrefix ? " using prefix $systemPathPrefix" : ''));
+
+    }
+
     function getShazamInstanceForProject($projectId) {
         // Shazam prefix specified in system settings, but the version we can
         // figure out for ourselves.
-        $shazamPrefix = $this->getSystemSetting("shazam-module-name");
+        $shazamPrefix = $this->getSystemSetting('shazam-module-name');
         $shazamVersion = null;
 
         $enabledModules = ExternalModules::getEnabledModules($projectId);
@@ -32,10 +42,19 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function getLoaderDirectory() {
-        // current EM dir is redcap/modules/<EM>, so the root is two levels up
-        $REDCAP_ROOT = dirname(dirname(__DIR__));
-        $loaderDirectory = $REDCAP_ROOT . '/' . $this->getProjectSetting("loader-target-directory");
-        return $loaderDirectory;
+
+        // Conflux Loader can have a system-level prefix specified by an admin,
+        // intended to allow the admin to limit code loading to subdirectories
+        // of the system prefix.
+
+        $systemPathPrefix = $this->getSystemSetting('path-prefix');
+        if ($systemPathPrefix) {
+            $path = $this->getProjectSetting('loader-target-directory');
+            $sanitizedPath = preg_replace('/\.+/', '.', $path);
+            return $systemPathPrefix . '/' . $sanitizedPath;
+        } else {
+            return $this->getProjectSetting('loader-target-directory');
+        }
     }
 
     function getLoaderConfig($key = null) {
