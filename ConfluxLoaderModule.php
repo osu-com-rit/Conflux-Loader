@@ -106,20 +106,40 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function injectForPage($pagePath) {
+
+        // Page-level matcher does two things to match a page:
+        // 1. Match current PAGE exactly with "page_path" entry
+        // 2. Match current REQUEST_URI with "path_match_regex" entry (optional)
+        //    (this is useful for matching a dashboard with `dash_id=X`)
+
+        $matcher = function($entry) use ($pagePath) {
+            if (!isset($entry['page_path'])) {
+                return false;
+            }
+
+            if ($entry['page_path'] !== $pagePath) {
+                return false;
+            }
+
+            if (isset($entry['path_match_regex'])) {
+                if (!preg_match($entry['path_match_regex'], $_SERVER["REQUEST_URI"])) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
         // Inject scripts into pages when a path matches
         $this->inject(
             $this->getLoaderConfig('pages'),
-            function($entry) use ($pagePath) {
-                return $entry['page_path'] === $pagePath;
-            },
+            $matcher,
         );
 
         // Inject CSS for pages
         $this->inject(
             $this->getLoaderConfig('pages'),
-            function($entry) use ($pagePath) {
-                return $entry['page_path'] === $pagePath;
-            },
+            $matcher,
             type: 'css',
             tag: 'style',
             extensionRegex: '/\.(css)$/'
@@ -136,20 +156,20 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $proj = new \Project();
         $instrument = isset($proj->forms[$_GET["page"]]) ? $_GET["page"] : null;
 
+        $matcher = function($entry) use ($instrument) {
+            return $entry['instrument_name'] === $instrument;
+        };
+
         // Inject scripts when the instrument matches the current page
         $this->inject(
             $this->getLoaderConfig('instruments'),
-            function($entry) use ($instrument) {
-                return $entry['instrument_name'] === $instrument;
-            }
+            $matcher
         );
 
         // Inject CSS for these same instruments
         $this->inject(
             $this->getLoaderConfig('instruments'),
-            function($entry) use ($instrument) {
-                return $entry['instrument_name'] === $instrument;
-            },
+            $matcher,
             type: 'css',
             tag: 'style',
             extensionRegex: '/\.(css)$/'
