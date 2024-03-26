@@ -264,14 +264,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return;
         }
 
-        if (!$projectId) {
-            // System pages - should we allow hooks here?
+        $system_injection_allowed = $this->getSystemSetting('allow-system-injection');
+        $login_injection_allowed  = $this->getSystemSetting('allow-login-injection');
+
+        if (!$projectId && !$system_injection_allowed) {
+            // System pages - disallow hooks here unless admin enables.
             return;
         }
 
         $pagePath = defined("PAGE") ? PAGE : null;
-        if (!$pagePath) {
-            // Login screen - should we allow hook here?
+        if (!$pagePath && !$login_injection_allowed) {
+            // Login page - disallow hooks here unless admin enables.
             return;
         }
 
