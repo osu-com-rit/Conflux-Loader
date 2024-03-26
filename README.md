@@ -28,6 +28,7 @@ examplemodule/
 ├── heading.html
 ├── survey_hook.js
 ├── instrument_hook.js
+├── instrument_style.css
 └── loader_config.json   (REQUIRED)
 ```
 
@@ -49,7 +50,8 @@ Note the JSON configuration file `loader_config.json`, which we have an example 
   "instruments": [
     {
       "instrument_name": "form_1",
-      "javascript": "instrument_hook.js"
+      "javascript": "instrument_hook.js",
+      "css": "instrument_style.css"
     }
   ],
 
@@ -113,6 +115,9 @@ out-of-scope for this module.
 For HTML files, Conflux Loader loads an existing Shazam instances `js/shazam.js`
 file (using some magic to find this path at runtime), and feeds HTML information
 in a manner compliant with how Shazam would.
+
+Please note that HTML injection is only usable for fields. There is no current
+HTML injection capability for pages or instruments.
 
 ## Acknowledgments
 

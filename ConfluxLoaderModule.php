@@ -113,6 +113,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 return $entry['page_path'] === $pagePath;
             },
         );
+
+        // Inject CSS for pages
+        $this->inject(
+            $this->getLoaderConfig('pages'),
+            function($entry) use ($pagePath) {
+                return $entry['page_path'] === $pagePath;
+            },
+            type: 'css',
+            tag: 'style',
+            extensionRegex: '/\.(css)$/'
+        );
     }
 
     function injectForInstrument($pagePath) {
@@ -132,9 +143,20 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 return $entry['instrument_name'] === $instrument;
             }
         );
+
+        // Inject CSS for these same instruments
+        $this->inject(
+            $this->getLoaderConfig('instruments'),
+            function($entry) use ($instrument) {
+                return $entry['instrument_name'] === $instrument;
+            },
+            type: 'css',
+            tag: 'style',
+            extensionRegex: '/\.(css)$/'
+        );
     }
 
-    function injectFromFolder($projectId, $isSurvey = false) {
+    function injectForFields($projectId, $isSurvey = false) {
 
         // Find and load Shazam EM instance, and derive the shazam.js
         // URL. Reusing Shazam's script should defend us from double loading, in
@@ -201,11 +223,11 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function redcap_survey_page_top($projectId, $record, $instrument) {
-        $this->injectFromFolder($projectId, true);
+        $this->injectForFields($projectId, true);
     }
 
     function redcap_data_entry_form_top($projectId, $record, $instrument) {
-        $this->injectFromFolder($projectId);
+        $this->injectForFields($projectId);
     }
 
     function redcap_every_page_top($projectId) {
