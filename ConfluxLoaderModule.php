@@ -60,8 +60,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     function getLoaderConfig($key = null) {
         $loaderDirectory = $this->getLoaderDirectory();
         $loaderConfigPath = $loaderDirectory . '/loader_config.json';
-        // TODO: warn the user of a broken JSON file
         $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
+
+        if ($loaderConfig === null && json_last_error() !== JSON_ERROR_NONE) {
+            echo '<div style="background-color: #870326; padding-left: 20px;">' . '<hr />'
+                . '<b>Conflux Loader JSON decoding error in ' . $loaderConfigPath .':</b><br />'
+                . '<pre>' . json_last_error_msg() . '</pre>'
+                . 'Please review the loader_config.json file and correct the error.'
+                . '<hr /></div><br />' . "\n";
+            return array();
+        }
+
         return $key ? $loaderConfig[$key] : $loaderConfig;
     }
 
@@ -72,7 +81,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
 
         $loaderDirectory = $this->getLoaderDirectory();
-        $loaderConfig = $this->getLoaderConfig();
 
         // Keep track of already embedded JS/CSS to prevent double loading. This
         // would otherwise happen when two instrument configs rely on the same

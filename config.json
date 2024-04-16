@@ -20,7 +20,7 @@
     },
     {
       "key": "path-prefix",
-      "name": "<u><b>!!! READ ME FOR PRODUCTION SYSTEMS !!!</u></b><br /><br /><b>Force code load from directory:</b><br /><br />Setting this value forces Conflux Loader modules to be loaded from subdirectories of this directory. Unspecified, a user can load code from any location in the instance's filesystem. Setting this value will alter the way that configured project-level paths are interpreted by the EM.<br /><br />Example value: <code>/var/www/html/edocs/loader_modules</code> (after creating it)",
+      "name": "<u><b>!!! READ ME FOR PRODUCTION SYSTEMS !!!</u></b><br /><br /><b>Force code load from directory:</b><br /><br />Setting this value forces Conflux Loader modules to be loaded from subdirectories of this directory. Unspecified, a user can load code from any location in the instance's filesystem. Setting this value will alter the way that configured project-level paths are interpreted by the EM.<br /><br />Example value: <code>/var/www/html/edocs/loader_modules</code>",
       "type": "text"
     },
     {
