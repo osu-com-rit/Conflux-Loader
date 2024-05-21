@@ -119,15 +119,32 @@ in a manner compliant with how Shazam would.
 Please note that HTML injection is only usable for fields. There is no current
 HTML injection capability for pages or instruments.
 
-## Acknowledgments
+## Acknowledgment and Attribution
 
-Conflux Loader was built by the Research IT group at The Ohio State Wexner
-Medical Center.
+*See the `NOTICE` file for more information.*
 
-Conflux loader was heavily inspired by the "Shazam" and "Javascript Injector"
-REDCap External Modules, and aims to highly compatible with them in the
-short-to-medium term.
+Conflux Loader's initial design and development was conducted by the Research
+Information Technology department of The Ohio State University College of
+Medicine.
 
-## Legal
+Conflux Loader was heavily inspired by the "Shazam" (Stanford School of
+Medicine) and "Javascript Injector" (Günther Rezniczek) REDCap External Modules.
 
-# @@@ <<< LEGAL TODO >>> @@@
+The development of Conflux Loader was supported The Ohio State University's
+Center for Clinical and Translational Science. The content is solely the
+responsibility of the authors and does not necessarily represent the official
+views of the university, or the Center for Clinical and Translational Science.
+
+This project was supported, in part, by the National Center for Advancing
+Translational Sciences of the National Institutes of Health under Grant Number
+UM1TR004548. The content is solely the responsibility of the authors and does
+not necessarily represent the official views of the National Institutes of
+Health.
+
+## License
+
+*See the `LICENSE` file for more information.*
+
+This software is licensed with the OSI-approved "Apache License 2.0" open-source
+software license.
+
