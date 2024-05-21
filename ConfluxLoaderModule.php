@@ -174,6 +174,15 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $matcher
         );
 
+        // Inject HTML for these same instruments
+        $this->inject(
+            $this->getLoaderConfig('instruments'),
+            $matcher,
+            type: 'html',
+            tag: 'section',
+            extensionRegex: '/\.(html)$/'
+        );
+
         // Inject CSS for these same instruments
         $this->inject(
             $this->getLoaderConfig('instruments'),
