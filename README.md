@@ -116,9 +116,6 @@ For HTML files, Conflux Loader loads an existing Shazam instances `js/shazam.js`
 file (using some magic to find this path at runtime), and feeds HTML information
 in a manner compliant with how Shazam would.
 
-Please note that HTML injection is only usable for fields. There is no current
-HTML injection capability for pages or instruments.
-
 ## Acknowledgment and Attribution
 
 *See the `NOTICE` file for more information.*
