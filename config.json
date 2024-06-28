@@ -1,13 +1,13 @@
 {
   "name": "Conflux Loader",
-  "namespace": "OSUWMC\\ConfluxLoaderModule",
+  "namespace": "OSUCOMRIT\\ConfluxLoaderModule",
   "description": "The Conflux Loader loads and injects user scripts from a configurable location.",
   "framework-version": 15,
   "authors": [
     {
       "name": "Kyle Kerslake",
       "email": "kers30@osumc.edu",
-      "institution": "The Ohio State University Wexner Medical Center"
+      "institution": "The Ohio State University College of Medicine"
     }
   ],
 

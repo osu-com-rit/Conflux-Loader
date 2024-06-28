@@ -1,6 +1,6 @@
 <?php
 
-namespace OSUWMC\ConfluxLoaderModule;
+namespace OSUCOMRIT\ConfluxLoaderModule;
 
 use \REDCap as REDCap;
 use \Stanford\Shazam as Shazam;
