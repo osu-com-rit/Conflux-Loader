@@ -148,18 +148,18 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $this->inject(
             $this->getLoaderConfig('pages'),
             $matcher,
-            type: 'html',
-            tag: 'section',
-            extensionRegex: '/\.(html)$/'
+            'html',
+            'section',
+            '/\.(html)$/'
         );
 
         // Inject CSS for pages
         $this->inject(
             $this->getLoaderConfig('pages'),
             $matcher,
-            type: 'css',
-            tag: 'style',
-            extensionRegex: '/\.(css)$/'
+            'css',
+            'style',
+            '/\.(css)$/'
         );
     }
 
@@ -187,18 +187,18 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $this->inject(
             $this->getLoaderConfig('instruments'),
             $matcher,
-            type: 'html',
-            tag: 'section',
-            extensionRegex: '/\.(html)$/'
+            'html',
+            'section',
+            '/\.(html)$/'
         );
 
         // Inject CSS for these same instruments
         $this->inject(
             $this->getLoaderConfig('instruments'),
             $matcher,
-            type: 'css',
-            tag: 'style',
-            extensionRegex: '/\.(css)$/'
+            'css',
+            'style',
+            '/\.(css)$/'
         );
     }
 
@@ -234,9 +234,10 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
         $this->inject(
             $this->getLoaderConfig('fields'),
-            type: 'css',
-            tag: 'style',
-            extensionRegex: '/\.(css)$/'
+            null, // no matcher
+            'css',
+            'style',
+            '/\.(css)$/'
         );
 
         // Misc
