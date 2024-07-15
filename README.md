@@ -1,6 +1,8 @@
 
 # Conflux Loader
 
+[![DOI](https://zenodo.org/badge/821544441.svg)](https://zenodo.org/doi/10.5281/zenodo.12746418)
+
 **Conflux Loader** is a REDCap External Module that loads user-defined
 Javascript, CSS, and HTML code, in a manner mostly compatible with the
 [Shazam](https://github.com/susom/redcap-em-shazam) and [REDCap JavaScript
