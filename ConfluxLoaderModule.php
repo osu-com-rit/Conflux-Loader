@@ -228,10 +228,12 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $shazamParams[] = $shazamParamsEntry;
         }
 
+        // Inject scripts for fields
         $this->inject(
             $this->getLoaderConfig('fields')
         );
 
+        // Inject CSS for fields
         $this->inject(
             $this->getLoaderConfig('fields'),
             null, // no matcher
@@ -248,7 +250,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         <script>
             if (typeof Shazam === "undefined") {
                 const msg = "\nConflux Loader error: Shazam JS object was not found."
-                          + "\n\nPlease notify a REDCap administrator.\n\n";
+                          + "\n\nPlease notify the REDCap project administrators.\n\n";
                 console.error(msg);
                 alert(msg);
             } else {
@@ -278,12 +280,13 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function redcap_every_page_top($projectId) {
+        // NOTE: this Shazam check occurs in survey and data entry pages!
         $shazam = $this->getShazamInstanceForProject($projectId);
         if (!$shazam) {
 ?>
             <script>
                 const msg = "\nConflux Loader error: Shazam prefix was not configured correctly."
-                    + "\n\nPlease notify a REDCap administrator.\n\n";
+                    + "\n\nPlease notify the REDCap project administrators.\n\n";
                 console.error(msg);
                 alert(msg);
             </script>
