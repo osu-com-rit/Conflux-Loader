@@ -3,6 +3,12 @@
   "namespace": "OSUCOMRIT\\ConfluxLoaderModule",
   "description": "The Conflux Loader loads and injects user scripts from a configurable location.",
   "framework-version": 9,
+  "permissions": [
+    "redcap_survey_page_top",
+    "redcap_data_entry_form_top",
+    "redcap_every_page_top"
+  ],
+
   "authors": [
     {
       "name": "Kyle Kerslake",
