@@ -2,7 +2,7 @@
   "name": "Conflux Loader",
   "namespace": "OSUCOMRIT\\ConfluxLoaderModule",
   "description": "The Conflux Loader loads and injects user scripts from a configurable location.",
-  "framework-version": 15,
+  "framework-version": 9,
   "authors": [
     {
       "name": "Kyle Kerslake",
