@@ -66,18 +66,6 @@ Note the JSON configuration file `loader_config.json`, which we have an example 
 }
 ```
 
-## Dependencies
-
-Conflux Loader has a hard dependency on the
-[Shazam](https://github.com/susom/redcap-em-shazam) External Module.
-
-**Shazam must be installed and enabled before Conflux Loader can be successfully
-configured.**
-
-Conflux Loader's system-level configuration requires the installer to supply the
-prefix of the installed Shazam EM (typically `"shazam"` or
-`"redcap_em_shazam"`).
-
 ## Installation
 
 Conflux Loader is a standard REDCap External Module. It can be installed by
@@ -85,11 +73,13 @@ cloning this repository into a subdirectory of your REDCap instance's
 `modules` folder:
 
 ```
-git clone <this@repo> conflux_loader_v0.1
+git clone <this@repo> conflux_loader_v1.0.3
 ```
 
-From there, you will need to enable the EM on a system level and set the Shazam
-prefix to point to your Shazam EM (see 'Dependencies').
+From there, you will need to enable the Conflux Loader EM at the
+system-level. Optionally, if you have Shazam installed on the REDCap instance,
+you can configure the Conflux Loader's Shazam prefix system setting to point at
+your Shazam installation.
 
 The Conflux Loader EM can then be enabled on a per-project basis. Project-level
 configuration of Conflux Loader is simple: point it at the directory of the
@@ -114,8 +104,8 @@ out-of-scope for this module.
 
 ### HTML
 
-For HTML files, Conflux Loader loads an existing Shazam instances `js/shazam.js`
-file (using some magic to find this path at runtime), and feeds HTML information
+For HTML files, Conflux Loader loads a copy of Shazam's `shazam.js` code injector
+ (using some magic to find this path at runtime), and feeds HTML information
 in a manner compliant with how Shazam would.
 
 ## Acknowledgment and Attribution
