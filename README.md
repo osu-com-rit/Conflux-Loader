@@ -127,7 +127,10 @@ Information Technology department of The Ohio State University College of
 Medicine.
 
 Conflux Loader was heavily inspired by the "Shazam" (Stanford School of
-Medicine) and "Javascript Injector" (Günther Rezniczek) REDCap External Modules.
+Medicine) and "Javascript Injector" (Günther Rezniczek) REDCap External
+Modules. Conflux Loader's distribution includes a copy of a file sourced from
+the Shazam REDCap External Module (see the *"Shazam: Inclusion and License"*
+section of this README for more information).
 
 The development of Conflux Loader was supported, in part, by The Ohio State
 University's Center for Clinical and Translational Science. The content is
@@ -147,4 +150,13 @@ Health.
 
 This software is licensed with the OSI-approved "Apache License 2.0" open-source
 software license.
+
+## Shazam: Inclusion and License
+
+This repository includes a copy of a file from the [Shazam REDCap External
+Module](https://github.com/susom/redcap-em-shazam/), released under the
+open-source MIT License with notice *"Copyright (c) 2017 Stanford School of
+Medicine"*.
+
+For more information see `shazam/README.md` and `shazam/LICENSE`.
 
