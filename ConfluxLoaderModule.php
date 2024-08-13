@@ -41,6 +41,19 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         return $fwInstance ?? $fwInstance->getModuleInstance();
     }
 
+    function getInjectorScriptForProject($projectId) {
+
+        // Found an enabled Shazam? Serve its shazam.js file.
+        // Didn't find Shazam? Serve Conflux Loader's builtin shazam.js.
+
+        $shazam = $this->getShazamInstanceForProject($projectId);
+        if ($shazam) {
+            return $shazam->getUrl("js/shazam.js");
+        } else {
+            return $this->getUrl("shazam/shazam.js");
+        }
+    }
+
     function getLoaderDirectory() {
 
         // Conflux Loader can have a system-level prefix specified by an admin,
@@ -208,8 +221,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         // URL. Reusing Shazam's script should defend us from double loading, in
         // the case that a page has both Shazam and Loader elements.
 
-        $shazam = $this->getShazamInstanceForProject($projectId);
-        $SHAZAM_JS_URL = $shazam->getUrl("js/shazam.js");
+        $SHAZAM_JS_URL = $this->getInjectorScriptForProject($projectId);
         echo "<script src=\"$SHAZAM_JS_URL\"></script>\n";
 
         $loaderDirectory = $this->getLoaderDirectory();
@@ -244,6 +256,8 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
         // Misc
         $consoleLog = true;
+        $shazam = $this->getShazamInstanceForProject($projectId);
+        $displayIcons = $shazam ? $shazam->getProjectSetting("shazam-display-icons") : false;
 
         // Inject JavaScript in a Shazam-compatible way:
 ?>
@@ -257,7 +271,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 $(document).ready(function () {
                     Shazam.params       = <?php print json_encode($shazamParams); ?>;
                     Shazam.isDev        = <?php echo $consoleLog ? 1 : 0; ?>;
-                    Shazam.displayIcons = <?php print json_encode($shazam->getProjectSetting("shazam-display-icons")); ?>;
+                    Shazam.displayIcons = <?php print json_encode($displayIcons); ?>;
                     Shazam.isSurvey     = <?php print json_encode($isSurvey); ?>;
                     setTimeout(function(){ Shazam.Transform(); }, 1);
                 });
@@ -282,16 +296,14 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     function redcap_every_page_top($projectId) {
         // NOTE: this Shazam check occurs in survey and data entry pages!
         $shazam = $this->getShazamInstanceForProject($projectId);
-        if (!$shazam) {
+        if ($shazam) {
 ?>
-            <script>
-                const msg = "\nConflux Loader error: Shazam prefix was not configured correctly."
-                    + "\n\nPlease notify the REDCap project administrators.\n\n";
-                console.error(msg);
-                alert(msg);
-            </script>
+            <script>console.info("Conflux Loader: using Shazam's shazam.js");</script>
 <?php
-            return;
+        } else {
+?>
+            <script>console.info("Conflux Loader: using inbuilt shazam.js");</script>
+<?php
         }
 
         $system_injection_allowed = $this->getSystemSetting('allow-system-injection');
