@@ -121,32 +121,56 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         return $loaderConfigs;
     }
 
-    function inject($configEntries, $loaderDirectory, $comparator = null,
+    function tryInjectJSMO($configEntries, $loadedFiles) {
+
+        // REDCap's JSMO is super useful for SPAs, so Conflux provides an
+        // easy option for loading and binding it.
+        //
+        // LOAD+BIND: "use_jsmo": { "bind_as": "JSMO" }
+        // LOAD: "use_jsmo": true,
+        //
+        // NOTE: a JSMO dummy file ('__jsmo') is included in $loadedFiles to
+        // protect against multiple JSMO loads per page (extra binds still work)
+
+        foreach ($configEntries as $configEntry) {
+            if (!isset($configEntry['use_jsmo'])) {
+                continue;
+            }
+
+            $useJsmo = $configEntry['use_jsmo'];
+            $jsmoName = $this->framework->getJavascriptModuleObjectName();
+
+            if (!isset($loadedFiles['__jsmo'])) {
+                echo "<script>console.info('Conflux Loader: JSMO loaded');</script>";
+                $this->initializeJavascriptModuleObject();
+                $loadedFiles['__jsmo'] = true;
+            }
+
+            if (isset($useJsmo['bind_as'])) {
+                $jsmoBind = $useJsmo['bind_as'];
+                echo "<script>console.info('Conflux Loader: new JSMO bind: ${jsmoBind}');</script>";
+?>
+                <script>const <?= $jsmoBind ?> = <?= $jsmoName ?>;</script>
+<?php
+            }
+        }
+    }
+
+    function inject($configEntries, $loaderDirectory, $loadedFiles, $comparator = null,
                     $type = 'javascript', $tag = 'script', $extensionRegex = '/\.(js)$/') {
         if (!$comparator) {
             $comparator = function($entry) { return true; };
         }
 
-        // Keep track of already embedded JS/CSS to prevent double loading. This
-        // would otherwise happen when two instrument configs rely on the same
-        // CSS/JS file (e.g. a "common.js" script).
+        // $loadedFiles keeps track of already embedded JS/CSS to prevent double
+        // loading. This would otherwise happen when two instrument configs rely
+        // on the same CSS/JS file (e.g. a "common.js" script).
         //
         // NOTE: the same script will be loaded if it's specified across
         // page/instr/field. this is mostly to prevent the common use case of
         // multiple fields using the same script on the same page.
 
-        $loadedFiles = array();
-
         foreach ($configEntries as $entry) {
-            // REDCap's JSMO is super useful for SPAs, so Conflux provides an
-            // easy option for loading it.
-            //
-            // TODO: impl different JSMO loading 'modes' ("raw", "bind") to
-            // magic away the `window.JSMO` binding boilerplate
-            if ($entry['use_jsmo']) {
-                $this->initializeJavascriptModuleObject();
-            }
-
             if (isset($entry[$type])
                 && !empty($entry[$type])
                 && preg_match($extensionRegex, $entry[$type])
@@ -185,13 +209,21 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return true;
         };
 
+        $loadedFiles = array();
+
         $loaderConfigs = $this->getLoaderConfigs();
         foreach ($loaderConfigs as $loaderConfig) {
+
+            $this->tryInjectJSMO(
+                $loaderConfig['pages'],
+                $loadedFiles
+            );
 
             // Inject scripts into pages when a path matches
             $this->inject(
                 $loaderConfig['pages'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher,
             );
 
@@ -199,6 +231,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $this->inject(
                 $loaderConfig['pages'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher,
                 'html',
                 'section',
@@ -209,6 +242,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $this->inject(
                 $loaderConfig['pages'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher,
                 'css',
                 'style',
@@ -231,13 +265,21 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return $entry['instrument_name'] === $instrument;
         };
 
+        $loadedFiles = array();
+
         $loaderConfigs = $this->getLoaderConfigs();
         foreach ($loaderConfigs as $loaderConfig) {
+
+            $this->tryInjectJSMO(
+                $loaderConfig['instruments'],
+                $loadedFiles
+            );
 
             // Inject scripts when the instrument matches the current page
             $this->inject(
                 $loaderConfig['instruments'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher
             );
 
@@ -245,6 +287,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $this->inject(
                 $loaderConfig['instruments'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher,
                 'html',
                 'section',
@@ -255,6 +298,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             $this->inject(
                 $loaderConfig['instruments'],
                 $loaderConfig['__directory'],
+                $loadedFiles,
                 $matcher,
                 'css',
                 'style',
@@ -273,6 +317,8 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         echo "<script src=\"$SHAZAM_JS_URL\"></script>\n";
 
         $shazamParams = array();
+
+        $loadedFiles = array();
 
         $loaderConfigs = $this->getLoaderConfigs();
         foreach ($loaderConfigs as $loaderConfig) {
@@ -293,16 +339,23 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 array_push($shazamParams, $shazamParamsEntry);
             }
 
+            $this->tryInjectJSMO(
+                $fieldEntries,
+                $loadedFiles
+            );
+
             // Inject scripts for fields
             $this->inject(
                 $fieldEntries,
-                $loaderDirectory
+                $loaderDirectory,
+                $loadedFiles
             );
 
             // Inject CSS for fields
             $this->inject(
                 $fieldEntries,
                 $loaderDirectory,
+                $loadedFiles,
                 null, // no matcher
                 'css',
                 'style',
