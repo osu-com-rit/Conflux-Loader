@@ -54,46 +54,78 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function getLoaderDirectory() {
+    function getLoaderDirectories() {
 
         // Conflux Loader can have a system-level prefix specified by an admin,
         // intended to allow the admin to limit code loading to subdirectories
         // of the system prefix.
 
         $systemPathPrefix = $this->getSystemSetting('path-prefix');
-        if ($systemPathPrefix) {
-            $path = $this->getProjectSetting('loader-target-directory');
+
+        $sanitizedDirectoryPaths = array();
+
+        $pathEntries = $this->getSubSettings('loader-target-directories');
+        foreach ($pathEntries as $entry) {
+            $path = $entry['path'];
+
+            // Filter out empty paths. Usually happens when someone clicks '+'
+            // in subsettings '+' but doesn't fill out the extra entry.
+            if (empty($path)) {
+                continue;
+            }
+
             $sanitizedPath = preg_replace('/\.+/', '.', $path);
-            return $systemPathPrefix . '/' . $sanitizedPath;
-        } else {
-            return $this->getProjectSetting('loader-target-directory');
-        }
-    }
 
-    function getLoaderConfig($key = null) {
-        $loaderDirectory = $this->getLoaderDirectory();
-        $loaderConfigPath = $loaderDirectory . '/loader_config.json';
-        $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
-
-        if ($loaderConfig === null && json_last_error() !== JSON_ERROR_NONE) {
-            echo '<div style="background-color: #870326; padding-left: 20px;">' . '<hr />'
-                . '<b>Conflux Loader JSON decoding error in ' . $loaderConfigPath .':</b><br />'
-                . '<pre>' . json_last_error_msg() . '</pre>'
-                . 'Please review the loader_config.json file and correct the error.'
-                . '<hr /></div><br />' . "\n";
-            return array();
+            if ($systemPathPrefix) {
+                // rebase the sanitized path on to the system-level path prefix
+                array_push($sanitizedDirectoryPaths, $systemPathPrefix . '/' . $sanitizedPath);
+            } else {
+                // NOTE: absence of system path prefix is typically a Dev
+                // config, but I still think it's fine to prevent '.' and '..'
+                // in paths, and always require absolute paths.
+                array_push($sanitizedDirectoryPaths, $sanitizedPath);
+            }
         }
 
-        return $key ? $loaderConfig[$key] : $loaderConfig;
+        return $sanitizedDirectoryPaths;
     }
 
-    function inject($configEntries, $comparator = null,
+    function getLoaderConfigs() {
+
+        $loaderConfigs = array();
+
+        $loaderDirectories = $this->getLoaderDirectories();
+        foreach ($loaderDirectories as $loaderDirectory) {
+            $loaderConfigPath = $loaderDirectory . '/loader_config.json';
+            $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
+
+            if ($loaderConfig === null && json_last_error() !== JSON_ERROR_NONE) {
+                echo '<div style="background-color: #870326; padding-left: 20px;">' . '<hr />'
+                    . '<b>Conflux Loader JSON decoding error in ' . $loaderConfigPath .':</b><br />'
+                    . '<pre>' . json_last_error_msg() . '</pre>'
+                    . 'Please review the loader_config.json file and correct the error.'
+                    . '<hr /></div><br />' . "\n";
+                // The error above is loud enough that I think it's safe to
+                // march on in attempting to load other modules...
+                continue;
+            }
+
+            // Tagging the directory in the config entry essentially lets us
+            // 'merge' loader_config.json entries for easier consumption by the
+            // injection routines.
+            $loaderConfig['__directory'] = $loaderDirectory;
+
+            array_push($loaderConfigs, $loaderConfig);
+        }
+
+        return $loaderConfigs;
+    }
+
+    function inject($configEntries, $loaderDirectory, $comparator = null,
                     $type = 'javascript', $tag = 'script', $extensionRegex = '/\.(js)$/') {
         if (!$comparator) {
             $comparator = function($entry) { return true; };
         }
-
-        $loaderDirectory = $this->getLoaderDirectory();
 
         // Keep track of already embedded JS/CSS to prevent double loading. This
         // would otherwise happen when two instrument configs rely on the same
@@ -106,9 +138,11 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $loadedFiles = array();
 
         foreach ($configEntries as $entry) {
-            // JSMO is a thing that JSI documents -- I think it provides a
-            // dynamic content hook based on language selection (and other
-            // reload triggers). Not sure if we use it, but it's available.
+            // REDCap's JSMO is super useful for SPAs, so Conflux provides an
+            // easy option for loading it.
+            //
+            // TODO: impl different JSMO loading 'modes' ("raw", "bind") to
+            // magic away the `window.JSMO` binding boilerplate
             if ($entry['use_jsmo']) {
                 $this->initializeJavascriptModuleObject();
             }
@@ -151,29 +185,36 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return true;
         };
 
-        // Inject scripts into pages when a path matches
-        $this->inject(
-            $this->getLoaderConfig('pages'),
-            $matcher,
-        );
+        $loaderConfigs = $this->getLoaderConfigs();
+        foreach ($loaderConfigs as $loaderConfig) {
 
-        // Inject HTML for pages
-        $this->inject(
-            $this->getLoaderConfig('pages'),
-            $matcher,
-            'html',
-            'section',
-            '/\.(html)$/'
-        );
+            // Inject scripts into pages when a path matches
+            $this->inject(
+                $loaderConfig['pages'],
+                $loaderConfig['__directory'],
+                $matcher,
+            );
 
-        // Inject CSS for pages
-        $this->inject(
-            $this->getLoaderConfig('pages'),
-            $matcher,
-            'css',
-            'style',
-            '/\.(css)$/'
-        );
+            // Inject HTML for pages
+            $this->inject(
+                $loaderConfig['pages'],
+                $loaderConfig['__directory'],
+                $matcher,
+                'html',
+                'section',
+                '/\.(html)$/'
+            );
+
+            // Inject CSS for pages
+            $this->inject(
+                $loaderConfig['pages'],
+                $loaderConfig['__directory'],
+                $matcher,
+                'css',
+                'style',
+                '/\.(css)$/'
+            );
+        }
     }
 
     function injectForInstrument($pagePath) {
@@ -190,29 +231,36 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return $entry['instrument_name'] === $instrument;
         };
 
-        // Inject scripts when the instrument matches the current page
-        $this->inject(
-            $this->getLoaderConfig('instruments'),
-            $matcher
-        );
+        $loaderConfigs = $this->getLoaderConfigs();
+        foreach ($loaderConfigs as $loaderConfig) {
 
-        // Inject HTML for these same instruments
-        $this->inject(
-            $this->getLoaderConfig('instruments'),
-            $matcher,
-            'html',
-            'section',
-            '/\.(html)$/'
-        );
+            // Inject scripts when the instrument matches the current page
+            $this->inject(
+                $loaderConfig['instruments'],
+                $loaderConfig['__directory'],
+                $matcher
+            );
 
-        // Inject CSS for these same instruments
-        $this->inject(
-            $this->getLoaderConfig('instruments'),
-            $matcher,
-            'css',
-            'style',
-            '/\.(css)$/'
-        );
+            // Inject HTML for these same instruments
+            $this->inject(
+                $loaderConfig['instruments'],
+                $loaderConfig['__directory'],
+                $matcher,
+                'html',
+                'section',
+                '/\.(html)$/'
+            );
+
+            // Inject CSS for these same instruments
+            $this->inject(
+                $loaderConfig['instruments'],
+                $loaderConfig['__directory'],
+                $matcher,
+                'css',
+                'style',
+                '/\.(css)$/'
+            );
+        }
     }
 
     function injectForFields($projectId, $isSurvey = false) {
@@ -224,35 +272,43 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $SHAZAM_JS_URL = $this->getInjectorScriptForProject($projectId);
         echo "<script src=\"$SHAZAM_JS_URL\"></script>\n";
 
-        $loaderDirectory = $this->getLoaderDirectory();
-        $fieldEntries = $this->getLoaderConfig('fields');
-
         $shazamParams = array();
-        foreach ($fieldEntries as $fieldEntry) {
-            $shazamParamsEntry = array('field_name' => $fieldEntry['field_name']);
 
-            if (isset($fieldEntry['html'])
-                && !empty($fieldEntry['html'])
-                && preg_match('/\.(html)$/', $fieldEntry['html'])) {
+        $loaderConfigs = $this->getLoaderConfigs();
+        foreach ($loaderConfigs as $loaderConfig) {
 
-                $shazamParamsEntry['html'] = file_get_contents($loaderDirectory . '/' . $fieldEntry['html']);
+            $fieldEntries = $loaderConfig['fields'];
+            $loaderDirectory = $loaderConfig['__directory'];
+
+            // Build Shazam's params from field config entries
+            foreach ($fieldEntries as $fieldEntry) {
+                $shazamParamsEntry = array('field_name' => $fieldEntry['field_name']);
+
+                if (isset($fieldEntry['html'])
+                    && !empty($fieldEntry['html'])
+                    && preg_match('/\.(html)$/', $fieldEntry['html'])) {
+
+                    $shazamParamsEntry['html'] = file_get_contents($loaderDirectory . '/' . $fieldEntry['html']);
+                }
+                array_push($shazamParams, $shazamParamsEntry);
             }
-            $shazamParams[] = $shazamParamsEntry;
+
+            // Inject scripts for fields
+            $this->inject(
+                $fieldEntries,
+                $loaderDirectory
+            );
+
+            // Inject CSS for fields
+            $this->inject(
+                $fieldEntries,
+                $loaderDirectory,
+                null, // no matcher
+                'css',
+                'style',
+                '/\.(css)$/'
+            );
         }
-
-        // Inject scripts for fields
-        $this->inject(
-            $this->getLoaderConfig('fields')
-        );
-
-        // Inject CSS for fields
-        $this->inject(
-            $this->getLoaderConfig('fields'),
-            null, // no matcher
-            'css',
-            'style',
-            '/\.(css)$/'
-        );
 
         // Misc
         $consoleLog = true;
