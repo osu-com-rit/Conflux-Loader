@@ -11,12 +11,10 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
     public function __construct() {
         parent::__construct();
+    }
 
-        $pid = $this->getProjectId();
-        $systemPathPrefix = $this->getSystemSetting('path-prefix');
-        error_log("Conflux Loader initialized for pid=$pid"
-                  . ($systemPathPrefix ? " using prefix $systemPathPrefix" : ''));
-
+    function validInjectionTypes() {
+        return array('fields', 'instruments', 'pages');
     }
 
     function getShazamInstanceForProject($projectId) {
@@ -110,10 +108,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 continue;
             }
 
-            // Tagging the directory in the config entry essentially lets us
-            // 'merge' loader_config.json entries for easier consumption by the
-            // injection routines.
+            // Tagging the directory (as '__directory') in the configs and their
+            // entries lets us 'merge' loader_config.json entries for easier
+            // consumption by the injection routines. Good for debugging too!
             $loaderConfig['__directory'] = $loaderDirectory;
+            foreach($this->validInjectionTypes() as $type) {
+                if (isset($loaderConfig[$type])) {
+                    foreach($loaderConfig[$type] as &$typeEntry) {
+                        $typeEntry['__directory'] = $loaderDirectory;
+                    }
+                }
+            }
 
             array_push($loaderConfigs, $loaderConfig);
         }
@@ -156,7 +161,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function inject($configEntries, $loaderDirectory, $loadedFiles, $comparator = null,
+    function inject($configEntries, $loadedFiles, $comparator = null,
                     $type = 'javascript', $tag = 'script', $extensionRegex = '/\.(js)$/') {
         if (!$comparator) {
             $comparator = function($entry) { return true; };
@@ -177,6 +182,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 && !isset($loadedFiles[$entry[$type]])
                 && $comparator($entry)) {
 
+                $loaderDirectory = $entry['__directory'];
                 $INLINE = file_get_contents($loaderDirectory . '/' . $entry[$type]);
                 echo "<$tag>" . $INLINE . "</$tag>\n";
                 $loadedFiles[$entry[$type]] = true;
@@ -222,7 +228,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject scripts into pages when a path matches
             $this->inject(
                 $loaderConfig['pages'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher,
             );
@@ -230,7 +235,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject HTML for pages
             $this->inject(
                 $loaderConfig['pages'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher,
                 'html',
@@ -241,7 +245,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject CSS for pages
             $this->inject(
                 $loaderConfig['pages'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher,
                 'css',
@@ -278,7 +281,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject scripts when the instrument matches the current page
             $this->inject(
                 $loaderConfig['instruments'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher
             );
@@ -286,7 +288,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject HTML for these same instruments
             $this->inject(
                 $loaderConfig['instruments'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher,
                 'html',
@@ -297,7 +298,6 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             // Inject CSS for these same instruments
             $this->inject(
                 $loaderConfig['instruments'],
-                $loaderConfig['__directory'],
                 $loadedFiles,
                 $matcher,
                 'css',
@@ -307,68 +307,84 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function injectForFields($projectId, $isSurvey = false) {
+    function injectForFields($projectId, $instrument, $isSurvey = false) {
 
-        // Find and load Shazam EM instance, and derive the shazam.js
-        // URL. Reusing Shazam's script should defend us from double loading, in
-        // the case that a page has both Shazam and Loader elements.
+        // Lookup table: field is in this instrument?
+        // TODO: Feature idea: regex field name matching
+        $instrumentHasField = array();
+        foreach (\REDCap::getFieldNames(array($instrument)) as $field) {
+            $instrumentHasField[$field] = true;
+        }
 
+        // Find and load Shazam's injector.
         $SHAZAM_JS_URL = $this->getInjectorScriptForProject($projectId);
         echo "<script src=\"$SHAZAM_JS_URL\"></script>\n";
 
+        // Build our pile of Shazam injection params, and inject any
+        // field-associated JavaScript and CSS.
         $shazamParams = array();
-
         $loadedFiles = array();
 
+        // Go through all fields of all configs, accumulating relevant fields
+        // (i.e. occurs in the instrument) to be injected by CFL (for JS and
+        // CSS) and Shazam (for HTML)
+        $relevantFieldEntries = array();
         $loaderConfigs = $this->getLoaderConfigs();
+
         foreach ($loaderConfigs as $loaderConfig) {
 
-            $fieldEntries = $loaderConfig['fields'];
-            $loaderDirectory = $loaderConfig['__directory'];
-
             // Build Shazam's params from field config entries
-            foreach ($fieldEntries as $fieldEntry) {
-                $shazamParamsEntry = array('field_name' => $fieldEntry['field_name']);
+            $configFieldEntries = $loaderConfig['fields'];
+            foreach ($configFieldEntries as $configFieldEntry) {
+                $fieldName = $configFieldEntry['field_name'];
 
-                if (isset($fieldEntry['html'])
-                    && !empty($fieldEntry['html'])
-                    && preg_match('/\.(html)$/', $fieldEntry['html'])) {
-
-                    $shazamParamsEntry['html'] = file_get_contents($loaderDirectory . '/' . $fieldEntry['html']);
+                // Field isn't relevant to this instrument, ignore.
+                if (!$instrumentHasField[$fieldName]) {
+                    continue;
                 }
+
+                $shazamParamsEntry = array('field_name' => $fieldName);
+
+                if (isset($configFieldEntry['html'])
+                    && !empty($configFieldEntry['html'])
+                    && preg_match('/\.(html)$/', $configFieldEntry['html'])) {
+
+                    $shazamParamsEntry['html'] = file_get_contents(
+                        $configFieldEntry['__directory'] . '/' . $configFieldEntry['html']
+                    );
+                }
+
+                array_push($relevantFieldEntries, $configFieldEntry);
                 array_push($shazamParams, $shazamParamsEntry);
             }
-
-            $this->tryInjectJSMO(
-                $fieldEntries,
-                $loadedFiles
-            );
-
-            // Inject scripts for fields
-            $this->inject(
-                $fieldEntries,
-                $loaderDirectory,
-                $loadedFiles
-            );
-
-            // Inject CSS for fields
-            $this->inject(
-                $fieldEntries,
-                $loaderDirectory,
-                $loadedFiles,
-                null, // no matcher
-                'css',
-                'style',
-                '/\.(css)$/'
-            );
         }
 
-        // Misc
+        // Inject JSMO if configured
+        $this->tryInjectJSMO(
+            $relevantFieldEntries,
+            $loadedFiles
+        );
+
+        // Inject scripts for fields
+        $this->inject(
+            $relevantFieldEntries,
+            $loadedFiles
+        );
+
+        // Inject CSS for fields
+        $this->inject(
+            $relevantFieldEntries,
+            $loadedFiles,
+            null, // no matcher
+            'css',
+            'style',
+            '/\.(css)$/'
+        );
+
+        // Inject HTML via the Shazam injector:
         $consoleLog = true;
         $shazam = $this->getShazamInstanceForProject($projectId);
         $displayIcons = $shazam ? $shazam->getProjectSetting("shazam-display-icons") : false;
-
-        // Inject JavaScript in a Shazam-compatible way:
 ?>
         <script>
             if (typeof Shazam === "undefined") {
@@ -395,11 +411,11 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function redcap_survey_page_top($projectId, $record, $instrument) {
-        $this->injectForFields($projectId, true);
+        $this->injectForFields($projectId, $instrument, true);
     }
 
     function redcap_data_entry_form_top($projectId, $record, $instrument) {
-        $this->injectForFields($projectId);
+        $this->injectForFields($projectId, $instrument);
     }
 
     function redcap_every_page_top($projectId) {
