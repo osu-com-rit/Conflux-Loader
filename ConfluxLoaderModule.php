@@ -9,10 +9,6 @@ use \ExternalModules\ExternalModules as ExternalModules;
 
 class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
-    public function __construct() {
-        parent::__construct();
-    }
-
     function validInjectionTypes() {
         return array('fields', 'instruments', 'pages');
     }
