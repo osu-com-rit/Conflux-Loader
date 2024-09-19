@@ -56,16 +56,25 @@ documentation section is for you.
 
 ## Developer Examples
 
-Here are some examples of non-trivial uses of Conflux Loader:
+> [!TIP]
+> Other examples may be found in our
+> [Conflux-Loader-Examples](https://github.com/osu-com-rit/Conflux-Loader-Examples)
+> repository!
 
-* [Information Browser](./examples/information_browser) - a textual content
-  browser embeddable in a REDCap survey (React SPA)
+Here are some example uses of Conflux Loader:
 
-* [Word Cloud](./examples/word_cloud) - a simple interactive field-like element
-  (React, React Three Fiber)
+* [Information
+  Browser](https://github.com/osu-com-rit/Conflux-Loader-Examples/tree/main/information_browser) -
+  a textual content browser embeddable in a REDCap survey (React SPA)
 
-* [3D Ping Pong](./examples/3d_ping_pong) - a 3D example embedded and integrated
-  with a REDCap survey (React, React Three Fiber, 3D Models)
+* [Word
+  Cloud](https://github.com/osu-com-rit/Conflux-Loader-Examples/tree/main/word_cloud) -
+  a simple interactive field-like element (React, React Three Fiber)
+
+* [3D Ping
+  Pong](https://github.com/osu-com-rit/Conflux-Loader-Examples/tree/main/3d_ping_pong) -
+  a 3D example embedded and integrated with a REDCap survey (React, React Three
+  Fiber, 3D Models)
 
 
 
