@@ -1,0 +1,13 @@
+{
+
+  "description": "3D Ping Pong - React Conflux Loader Module demo.",
+
+  "fields": [
+    {
+      "field_name": "app",
+      "html": "src/app.html",
+      "javascript": "public/bundle.js"
+    }
+  ]
+
+}

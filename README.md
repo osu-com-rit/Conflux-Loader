@@ -1,114 +1,93 @@
 
 # Conflux Loader
 
-[![DOI](https://zenodo.org/badge/821544441.svg)](https://zenodo.org/doi/10.5281/zenodo.12746418)
+![GitHub Release](https://img.shields.io/github/v/release/osu-com-rit/Conflux-Loader) ![GitHub License](https://img.shields.io/github/license/osu-com-rit/Conflux-Loader) [![DOI](https://zenodo.org/badge/821544441.svg)](https://zenodo.org/doi/10.5281/zenodo.12746418)
 
-**Conflux Loader** is a REDCap External Module that loads user-defined
-Javascript, CSS, and HTML code, in a manner mostly compatible with the
+**Conflux Loader** is a REDCap External Module (EM) that takes a file-centric
+approach to injecting user-defined HTML, CSS, and JavaScript source code into
+the REDCap frontend.
+
+Developed in response to challenges faced in larger codebases with existing code
+injection external modules like
 [Shazam](https://github.com/susom/redcap-em-shazam) and [REDCap JavaScript
-Injector](https://github.com/grezniczek/redcap_javascript_injector) REDCap
-External Modules.
+Injector](https://github.com/grezniczek/redcap_javascript_injector), Conflux
+Loader unlocks standard web development toolkits for use in REDCap frontend
+development. Conflux Loader "modules" are easily version controlled, and
+seamlessly integrate with the modern web development ecosystem and its libraries
+and frameworks.
 
-The key feature of Conflux Loader is that it loads from the local filesystem, in
-contrast to how Shazam and JSI load from project settings and configuration.
+Having been designed as a migration target for complex Shazam-and-JSI
+development efforts, Conflux Loader naturally retains a high degree of
+compatibility with existing source code injection EMs.
 
-By loading from the local filesystem, Conflux Loader makes it easy to use
-typical development tooling for Shazam-style development, as most developer
-tooling expects code to exist in a directory.
+## Documentation
 
-We have found this module to be particularly useful when a Shazam/JSI codebase
-grows beyond a scope that the Shazam/JSI EMs can comfortably handle.
+> [!IMPORTANT]
+> Please open a [GitHub
+> Issue](https://github.com/osu-com-rit/Conflux-Loader/issues) if you feel like
+> we've missed a useful piece of information or documentation. All suggestions are welcome!
 
-## Example
+#### **Administrators**
 
-A valid Conflux Loader module is a directory looking something like:
+Do you plan to deploy and maintain a Conflux Loader installation for
+your users and developers? This documentation section is for you.
 
-```
-examplemodule/
-├── common.js
-├── heading.css
-├── heading.html
-├── survey_hook.js
-├── instrument_hook.js
-├── instrument_style.css
-└── loader_config.json   (REQUIRED)
-```
+* [Prerequisites and Installation](./docs/PrerequisitesInstallation.md)
 
-Note the JSON configuration file `loader_config.json`, which we have an example of:
+* [Reference: Conflux Loader EM Configuration](./docs/InstanceConfiguration.md) (System and Project-level)
 
-```json
-{
-  "description": "An Example Conflux Loader Module",
+* [Locking Conflux Down: Security Concerns](./docs/Security.md)
 
-  "fields": [
-    {
-      "field_name": "heading",
-      "html": "heading.html",
-      "css": "heading.css",
-      "javascript": "heading.js"
-    }
-  ],
 
-  "instruments": [
-    {
-      "instrument_name": "form_1",
-      "javascript": "instrument_hook.js",
-      "css": "instrument_style.css"
-    }
-  ],
+#### **Developers**
 
-  "pages": [
-    {
-      "page_path": "surveys/index.php",
-      "javascript": "survey_hook.js"
-    }
-  ]
-}
-```
+Do you wish to use Conflux Loader in your development workflow? This
+documentation section is for you.
 
-## Installation
+* [Quickstart: your first Conflux Loader Module](./docs/Quickstart.md)
 
-Conflux Loader is a standard REDCap External Module. It can be installed by
-cloning this repository into a subdirectory of your REDCap instance's
-`modules` folder:
+* [Reference: The `loader_config.json` Format](./docs/LoaderConfigJsonFormat.md)
 
-```
-git clone <this@repo> conflux_loader_v1.0.3
-```
+* [How Conflux Loader Works](./docs/HowConfluxLoaderWorks.md)
 
-From there, you will need to enable the Conflux Loader EM at the
-system-level. Optionally, if you have Shazam installed on the REDCap instance,
-you can configure the Conflux Loader's Shazam prefix system setting to point at
-your Shazam installation.
+<!-- * **[TODO]** [Migrating from Shazam and JavaScript Injector](./docs/MigrationGuide.md) -->
 
-The Conflux Loader EM can then be enabled on a per-project basis. Project-level
-configuration of Conflux Loader is simple: point it at the directory of the
-Conflux Loader module corresponding with your project.
+<!-- * **[TODO]** [Options for deploying Conflux Loader Modules](./docs/DeployingModules.md) -->
 
-## Mechanism and Compatibility
+## Developer Examples
 
-All things considered, Conflux Loader is a fairly simple REDCap External Module,
-and behaves very similar to Shazam and JSI. The example config file above should
-look familiar to anyone acquainted with REDCap script injection.
+Here are some examples of non-trivial uses of Conflux Loader:
 
-### CSS and Javascript
+* [Information Browser](./examples/information_browser) - a textual content
+  browser embeddable in a REDCap survey (React SPA)
 
-CSS and Javascript are loaded in a manner consistent with Shazam and JSI. CSS
-and Javascript files are inlined at the top of the loaded page, as would be
-expected when using the `redcap_survey_page_top`, `redcap_data_entry_form_top`,
-and `redcap_every_page_top` External Module API hooks.
+* [Word Cloud](./examples/word_cloud) - a simple interactive field-like element
+  (React, React Three Fiber)
 
-**Note:** there is no current way to load JS and CSS files without inlining
-them, as safely serving files from a REDCap instance's filesystem is somewhat
-out-of-scope for this module.
+* [3D Ping Pong](./examples/3d_ping_pong) - a 3D example embedded and integrated
+  with a REDCap survey (React, React Three Fiber, 3D Models)
 
-### HTML
 
-For HTML files, Conflux Loader loads a copy of Shazam's `shazam.js` code injector
- (using some magic to find this path at runtime), and feeds HTML information
-in a manner compliant with how Shazam would.
 
-## Acknowledgment and Attribution
+## Suggestions and Contributions
+
+Please open a new [GitHub
+Issue](https://github.com/osu-com-rit/Conflux-Loader/issues) for any
+suggestions, questions, or concerns surrounding the Conflux Loader
+software. Conflux Loader is still in its infancy and it is certain that later
+versions will look and play a bit differently to what we have now.
+
+Please also feel free to submit a [Pull Request
+(PR)](https://github.com/osu-com-rit/Conflux-Loader/pulls) if you wish to fix or
+extend Conflux Loader. Please ensure changes or additions are documented in the
+PR.
+
+For significant change proposals (think: those needing a bump in [Semantic
+Versioning major/minor version](https://semver.org/)) it is highly recommended
+that a PR is opened first to discuss the changes.
+
+
+## Acknowledgments and Attributions
 
 *See the `NOTICE` file for more information.*
 
@@ -149,4 +128,3 @@ open-source MIT License with notice *"Copyright (c) 2017 Stanford School of
 Medicine"*.
 
 For more information see `shazam/README.md` and `shazam/LICENSE`.
-

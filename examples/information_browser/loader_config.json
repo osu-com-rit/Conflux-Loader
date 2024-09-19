@@ -1,0 +1,12 @@
+{
+  "description": "Information Browser - React Conflux Loader Module example.",
+
+  "fields": [
+    {
+      "field_name": "app",
+      "html": "src/app.html",
+      "javascript": "public/bundle.js",
+      "css": "src/app.css"
+    }
+  ]
+}
