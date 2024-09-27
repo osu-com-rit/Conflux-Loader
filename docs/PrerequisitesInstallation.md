@@ -48,7 +48,15 @@ installation (example: `/var/www/html/conflux_loader_modules`, *no trailing slas
 
 ### Via the *REDCap Repository of External Modules*
 
-*This will be updated when Conflux Loader is available via the REDCap Repo...*
+[Conflux Loader is available via the official REDCap Repo!](https://redcap.vumc.org/consortium/modules/index.php)
+*(search for "Conflux Loader")*
+
+Conflux Loader may be installed like any other EM sourced from the REDCap Repo through the
+`Control Center > External Modules > Manage` interface on a REDCap instance.
+
+Please note that Repo's version may be slightly older than the most recent version 
+available on GitHub. We will generally update Repo's version for significant changes 
+like bugfixes, security fixes, and new features.
 
 
 ### From Source (GitHub)
