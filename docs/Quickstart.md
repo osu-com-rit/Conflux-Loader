@@ -11,7 +11,7 @@ like the following:
 ## Setup
 
 First, ensure Conflux Loader is running and functional (see [Prerequisites &
-Installation](./PrerequisitesAndInstallation.md) for more information!).
+Installation](./PrerequisitesInstallation.md) for more information!).
 
 Then, create a REDCap project and, on the 'base' instrument, create a
 ***Descriptive Text*** field called `heading`. We will wire our code injections
