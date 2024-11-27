@@ -65,6 +65,13 @@ this bypasses some boilerplate):
 "use_jsmo": { "bind_as": "JSMO" }
 ```
 
+### `disable_for_survey` and `disable_for_data_entry`
+
+`disable_for_survey` prevents the injection on survey pages.
+
+`disable_for_data_entry` prevents the injection on the DataEntry page (AKA form
+mode/view).
+
 ## **Instrument Injections** (`"instruments"`)
 
 Instrument injections occur at the instrument level, and are useful for
@@ -101,6 +108,9 @@ The HTML / CSS / JavaScript file(s) to inject at the top of this instrument.
 Inject REDCap's JavaScript Module Object (JSMO) into the page. Operates the same
 as for `fields`.
 
+### `disable_for_survey` and `disable_for_data_entry`
+
+See `fields` description of `disable_for_survey` and `disable_for_data_entry`.
 
 ## **Page Injections** (`"pages"`)
 
@@ -149,6 +159,13 @@ The HTML / CSS / JavaScript file(s) to inject at the top of this page.
 
 Inject REDCap's JavaScript Module Object (JSMO) into the page. Operates the same
 as for `fields`.
+
+### `disable_for_survey` and `disable_for_data_entry`
+
+See `fields` description of `disable_for_survey` and `disable_for_data_entry`.
+
+For `pages` this is functionally the same as a negative `path_match_regex` match
+on `surveys/index.php` and `DataEntry/index.php`.
 
 ### `path_match_regex`
 

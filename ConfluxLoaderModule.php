@@ -157,6 +157,18 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
+    function entryHasSetBool($entry, $key) {
+        return (bool)(!empty($entry[$key]) && $entry[$key]);
+    }
+
+    function disabledForSurvey($configEntry) {
+        return $this->entryHasSetBool($configEntry, 'disable_for_survey');
+    }
+
+    function disabledForDataEntry($configEntry) {
+        return $this->entryHasSetBool($configEntry, 'disable_for_data_entry');
+    }
+
     function inject($configEntries, $loadedFiles, $comparator = null,
                     $type = 'javascript', $tag = 'script', $extensionRegex = '/\.(js)$/') {
         if (!$comparator) {
@@ -186,14 +198,20 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function injectForPage($pagePath) {
+    function injectForPage($pagePath, $isSurvey, $isDataEntry) {
 
-        // Page-level matcher does two things to match a page:
-        // 1. Match current PAGE exactly with "page_path" entry
-        // 2. Match current REQUEST_URI with "path_match_regex" entry (optional)
+        // Page-level matcher does three things to match a page:
+        // 1. Check if this injection is disabled on survey/DataEntry
+        // 2. Match current PAGE exactly with "page_path" entry
+        // 3. Match current REQUEST_URI with "path_match_regex" entry (optional)
         //    (this is useful for matching a dashboard with `dash_id=X`)
 
-        $matcher = function($entry) use ($pagePath) {
+        $matcher = function($entry) use ($pagePath, $isSurvey, $isDataEntry) {
+            if ($isSurvey && $this->disabledForSurvey($entry) ||
+                $isDataEntry && $this->disabledForDataEntry($entry)) {
+                return false;
+            }
+
             if (!isset($entry['page_path'])) {
                 return false;
             }
@@ -250,17 +268,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function injectForInstrument($pagePath) {
-        // Instruments only exist on survey and data entry pages
-        if ($pagePath !== "surveys/index.php"
-            && $pagePath !== "DataEntry/index.php") {
-            return;
-        }
+    function injectForInstrument($instrument, $isSurvey) {
+        $matcher = function($entry) use ($instrument, $isSurvey) {
+            // Instruments only appear on survey xor data entry pages.
+            $isDataEntry = !$isSurvey;
 
-        $proj = new \Project();
-        $instrument = isset($proj->forms[$_GET["page"]]) ? $_GET["page"] : null;
+            // Injection disabled for instrument on survey ior data entry mode.
+            if ($isSurvey && $this->disabledForSurvey($entry) ||
+                $isDataEntry && $this->disabledForDataEntry($entry)) {
+                return false;
+            }
 
-        $matcher = function($entry) use ($instrument) {
             return $entry['instrument_name'] === $instrument;
         };
 
@@ -303,7 +321,9 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         }
     }
 
-    function injectForFields($projectId, $instrument, $isSurvey = false) {
+    function injectForFields($projectId, $instrument, $isSurvey) {
+        // Fields only appear on survey xor data entry pages.
+        $isDataEntry = !$isSurvey;
 
         // Lookup table: field is in this instrument?
         // TODO: Feature idea: regex field name matching
@@ -336,6 +356,12 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
                 // Field isn't relevant to this instrument, ignore.
                 if (!$instrumentHasField[$fieldName]) {
+                    continue;
+                }
+
+                // Injection disabled for field on survey ior data entry mode, ignore.
+                if ($isSurvey && $this->disabledForSurvey($configFieldEntry) ||
+                    $isDataEntry && $this->disabledForDataEntry($configFieldEntry)) {
                     continue;
                 }
 
@@ -407,11 +433,14 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
     }
 
     function redcap_survey_page_top($projectId, $record, $instrument) {
-        $this->injectForFields($projectId, $instrument, true);
+        $isSurvey = true;
+        $this->injectForInstrument($instrument, $isSurvey);
+        $this->injectForFields($projectId, $instrument, $isSurvey);
     }
 
     function redcap_data_entry_form_top($projectId, $record, $instrument) {
-        $this->injectForFields($projectId, $instrument);
+        $this->injectForInstrument($instrument, false);
+        $this->injectForFields($projectId, $instrument, false);
     }
 
     function redcap_every_page_top($projectId) {
@@ -441,8 +470,10 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
             return;
         }
 
-        $this->injectForPage($pagePath);
-        $this->injectForInstrument($pagePath);
+        $isSurvey = $pagePath === "surveys/index.php";
+        $isDataEntry = $pagePath === "DataEntry/index.php";
+
+        $this->injectForPage($pagePath, $isSurvey, $isDataEntry);
     }
 }
 
