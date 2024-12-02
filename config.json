@@ -17,6 +17,18 @@
     }
   ],
 
+  "links": {
+    "project": [
+      {
+        "name": "Conflux Loader Dashboard",
+        "key": "confluxloader",
+        "icon": "fas fa-gear",
+        "url": "ConfluxLoaderPage.php",
+        "show-header-and-footer": true
+      }
+    ]
+  },
+
   "system-settings": [
     {
       "key": "shazam-module-name",

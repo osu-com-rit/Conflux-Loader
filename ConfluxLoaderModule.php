@@ -84,12 +84,13 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         return $sanitizedDirectoryPaths;
     }
 
-    function getLoaderConfigs() {
+    function getLoaderConfigs($includeMetadata = true) {
 
         $loaderConfigs = array();
 
         $loaderDirectories = $this->getLoaderDirectories();
         foreach ($loaderDirectories as $loaderDirectory) {
+            $basename = basename($loaderDirectory);
             $loaderConfigPath = $loaderDirectory . '/loader_config.json';
             $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
 
@@ -104,14 +105,18 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 continue;
             }
 
-            // Tagging the directory (as '__directory') in the configs and their
-            // entries lets us 'merge' loader_config.json entries for easier
-            // consumption by the injection routines. Good for debugging too!
-            $loaderConfig['__directory'] = $loaderDirectory;
-            foreach($this->validInjectionTypes() as $type) {
-                if (isset($loaderConfig[$type])) {
-                    foreach($loaderConfig[$type] as &$typeEntry) {
-                        $typeEntry['__directory'] = $loaderDirectory;
+            if ($includeMetadata) {
+                // Tagging the directory (as '__directory') in the configs and their
+                // entries lets us 'merge' loader_config.json entries for easier
+                // consumption by the injection routines. Good for debugging too!
+                $loaderConfig['__loader_module'] = $basename;
+                $loaderConfig['__directory'] = $loaderDirectory;
+                foreach($this->validInjectionTypes() as $type) {
+                    if (isset($loaderConfig[$type])) {
+                        foreach($loaderConfig[$type] as &$typeEntry) {
+                            $typeEntry['__loader_module'] = $basename;
+                            $typeEntry['__directory'] = $loaderDirectory;
+                        }
                     }
                 }
             }
