@@ -3,13 +3,15 @@
 namespace OSUCOMRIT\ConfluxLoaderModule;
 
 use \REDCap as REDCap;
-use \Stanford\Shazam as Shazam;
 use \ExternalModules\ExternalModules as ExternalModules;
 
 
 class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
-    function validInjectionTypes() {
+    // TODO: eventually configify FILE_REPOSITORY_PREFIX
+    const FILE_REPOSITORY_PREFIX = 'conflux_loader_modules';
+
+    function validInjectionTargets() {
         return array('fields', 'instruments', 'pages');
     }
 
@@ -61,6 +63,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         $pathEntries = $this->getSubSettings('loader-target-directories');
         foreach ($pathEntries as $entry) {
             $path = $entry['path'];
+            $isFileRepoPath = $entry['is-filerepo-path'];
 
             // Filter out empty paths. Usually happens when someone clicks '+'
             // in subsettings '+' but doesn't fill out the extra entry.
@@ -70,7 +73,10 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
             $sanitizedPath = preg_replace('/\.+/', '.', $path);
 
-            if ($systemPathPrefix) {
+            if ($isFileRepoPath) {
+                // File Repository paths are their own thing
+                array_push($sanitizedDirectoryPaths, '$ProjectFileRepository' . '/' . self::FILE_REPOSITORY_PREFIX . '/' . $sanitizedPath);
+            } else if ($systemPathPrefix) {
                 // rebase the sanitized path on to the system-level path prefix
                 array_push($sanitizedDirectoryPaths, $systemPathPrefix . '/' . $sanitizedPath);
             } else {
@@ -84,15 +90,95 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         return $sanitizedDirectoryPaths;
     }
 
-    function getLoaderConfigs($includeMetadata = true) {
+    function getFileRepoDocsByPath($docName = null) {
+        // TODO: eventually configify $escapedMaxCteRecursionDepth on
+        // per-project basis.
+        //
+        // Note that the mysqli prepared statements don't like SET_VAR...
+        //
+        // $escapedMaxCteRecursionDepth = '10';
+        $pid = $this->getProjectId();
 
+        // SQL query resolves File Repo filepaths for all files under the
+        // `conflux_loader_modules` root folder
+        $sql = "
+            with recursive
+            parent_folder_cte as
+            (
+                select name path, folder_id
+                from redcap_docs_folders
+                where name = ?
+                    and project_id = ?
+                    and parent_folder_id is null
+
+                union all
+
+                select concat(parent.path, '/', folder.name) path, folder.folder_id
+                from redcap_docs_folders folder
+                    inner join parent_folder_cte parent on folder.parent_folder_id = parent.folder_id
+                where project_id = ?
+            )
+            select /*+ SET_VAR(cte_max_recursion_depth = 10) */
+                concat(path, '/', doc_name) as file_path, doc_id
+            from parent_folder_cte
+                inner join redcap_docs_folders_files using (folder_id)
+                left join redcap_docs_to_edocs using (docs_id)
+                inner join redcap_edocs_metadata using (doc_id)
+            where delete_date is null
+        ";
+        $query = $this->createQuery();
+        $query->add($sql, [self::FILE_REPOSITORY_PREFIX, $pid, $pid]);
+        if ($docName !== null) {
+            $query->add("and doc_name = ?", [$docName]);
+        }
+        $query->add(";");
+        $result = $query->execute();
+
+        $docIdByRepoPath = array();
+        while($row = $result->fetch_assoc()){
+            $docIdByRepoPath['$ProjectFileRepository/' . $row['file_path']] = $row;
+        }
+        return $docIdByRepoPath;
+    }
+
+    function isFileRepositoryPath($path) {
+        return strncmp($path, '$ProjectFileRepository/', strlen('$ProjectFileRepository/')) === 0;
+    }
+
+    function getLoaderConfigs($includeMetadata = true) {
         $loaderConfigs = array();
 
         $loaderDirectories = $this->getLoaderDirectories();
+        $docsByPath = $this->getFileRepoDocsByPath();
+
         foreach ($loaderDirectories as $loaderDirectory) {
             $basename = basename($loaderDirectory);
-            $loaderConfigPath = $loaderDirectory . '/loader_config.json';
-            $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
+            if ($this->isFileRepositoryPath($loaderDirectory)) {
+                // Loader Config paths in the File Repo are read via the
+                // API. These paths all have a particular prefix:
+                //     $ProjectFileRepository/
+                //
+                $configDoc = $docsByPath[
+                    '$ProjectFileRepository' . '/' . self::FILE_REPOSITORY_PREFIX . '/'
+                        . $basename . '/' . 'loader_config.json'
+                ];
+                $configDocId = $configDoc['doc_id'];
+
+                list ($mimeType, $docName, $fileContents) = REDCap::getFile($configDocId);
+                if ($mimeType !== 'application/json') {
+                    continue;
+                }
+
+                $loaderConfig = json_decode($fileContents, true);
+                if ($includeMetadata) {
+                    $loaderConfig['__file_repository'] = $configDoc;
+                }
+
+            } else {
+                // Non-File Repo loading is simple: load from disk.
+                $loaderConfigPath = $loaderDirectory . '/loader_config.json';
+                $loaderConfig = json_decode(file_get_contents($loaderConfigPath), true);
+            }
 
             if ($loaderConfig === null && json_last_error() !== JSON_ERROR_NONE) {
                 echo '<div style="background-color: #870326; padding-left: 20px;">' . '<hr />'
@@ -111,11 +197,11 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 // consumption by the injection routines. Good for debugging too!
                 $loaderConfig['__loader_module'] = $basename;
                 $loaderConfig['__directory'] = $loaderDirectory;
-                foreach($this->validInjectionTypes() as $type) {
-                    if (isset($loaderConfig[$type])) {
-                        foreach($loaderConfig[$type] as &$typeEntry) {
-                            $typeEntry['__loader_module'] = $basename;
-                            $typeEntry['__directory'] = $loaderDirectory;
+                foreach($this->validInjectionTargets() as $injTarg) {
+                    if (isset($loaderConfig[$injTarg])) {
+                        foreach($loaderConfig[$injTarg] as &$injTargEntry) {
+                            $injTargEntry['__loader_module'] = $basename;
+                            $injTargEntry['__directory'] = $loaderDirectory;
                         }
                     }
                 }
@@ -188,6 +274,8 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         // page/instr/field. this is mostly to prevent the common use case of
         // multiple fields using the same script on the same page.
 
+        $docsByPath = $this->getFileRepoDocsByPath();
+
         foreach ($configEntries as $entry) {
             if (isset($entry[$type])
                 && !empty($entry[$type])
@@ -195,8 +283,18 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 && !isset($loadedFiles[$entry[$type]])
                 && $comparator($entry)) {
 
-                $loaderDirectory = $entry['__directory'];
-                $INLINE = file_get_contents($loaderDirectory . '/' . $entry[$type]);
+                $INLINE = '';
+                if ($this->isFileRepositoryPath($entry['__directory'])) {
+                    // Read from File Repository
+                    $fileRepoDoc = $docsByPath[$entry['__directory'] . '/' . $entry[$type]];
+                    list ($mimeType, $docName, $fileContents) = REDCap::getFile($fileRepoDoc['doc_id']);
+                    $INLINE = $fileContents;
+                } else {
+                    // Read from disk
+                    $loaderDirectory = $entry['__directory'];
+                    $INLINE = file_get_contents($loaderDirectory . '/' . $entry[$type]);
+                }
+
                 echo "<$tag>" . $INLINE . "</$tag>\n";
                 $loadedFiles[$entry[$type]] = true;
             }
@@ -258,7 +356,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 $matcher,
                 'html',
                 'section',
-                '/\.(html)$/'
+                '/\.(html|htm)$/'
             );
 
             // Inject CSS for pages
@@ -311,7 +409,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 $matcher,
                 'html',
                 'section',
-                '/\.(html)$/'
+                '/\.(html|htm)$/'
             );
 
             // Inject CSS for these same instruments
@@ -333,7 +431,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         // Lookup table: field is in this instrument?
         // TODO: Feature idea: regex field name matching
         $instrumentHasField = array();
-        foreach (\REDCap::getFieldNames(array($instrument)) as $field) {
+        foreach (REDCap::getFieldNames(array($instrument)) as $field) {
             $instrumentHasField[$field] = true;
         }
 
@@ -351,6 +449,8 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
         // CSS) and Shazam (for HTML)
         $relevantFieldEntries = array();
         $loaderConfigs = $this->getLoaderConfigs();
+
+        $docsByPath = $this->getFileRepoDocsByPath();
 
         foreach ($loaderConfigs as $loaderConfig) {
 
@@ -374,11 +474,17 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
 
                 if (isset($configFieldEntry['html'])
                     && !empty($configFieldEntry['html'])
-                    && preg_match('/\.(html)$/', $configFieldEntry['html'])) {
+                    && preg_match('/\.(html|htm)$/', $configFieldEntry['html'])) {
 
-                    $shazamParamsEntry['html'] = file_get_contents(
-                        $configFieldEntry['__directory'] . '/' . $configFieldEntry['html']
-                    );
+                    if ($this->isFileRepositoryPath($configFieldEntry['__directory'])) {
+                        $fileRepoDoc = $docsByPath[$configFieldEntry['__directory'] . '/' . $configFieldEntry['html']];
+                        list ($mimeType, $docName, $fileContents) = REDCap::getFile($fileRepoDoc['doc_id']);
+                        $shazamParamsEntry['html'] = $fileContents;
+                    } else {
+                        $shazamParamsEntry['html'] = file_get_contents(
+                            $configFieldEntry['__directory'] . '/' . $configFieldEntry['html']
+                        );
+                    }
                 }
 
                 array_push($relevantFieldEntries, $configFieldEntry);

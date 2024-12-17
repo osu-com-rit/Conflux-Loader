@@ -69,6 +69,11 @@
           "key": "path",
           "name": "<u>Module Directory</u>",
           "type": "text"
+        },
+        {
+          "key": "is-filerepo-path",
+          "name": "<u>Module exists in File Repository?</u>",
+          "type": "checkbox"
         }
       ]
     }

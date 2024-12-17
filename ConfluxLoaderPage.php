@@ -13,7 +13,8 @@ function annotateFieldWithInstrument($datadict, $fields) {
 $datadict = \REDCap::getDataDictionary($module->getProjectId(), 'array');
 // print_r($datadict);
 $configs = $module->getLoaderConfigs();
-$abridgedConfigs = $module->getLoaderConfigs(false);
+$verboseMode = !empty($_GET['verbose']);
+$abridgedConfigs = $module->getLoaderConfigs($verboseMode);
 $enabledModules = collect('__loader_module', $configs);
 ?>
 
@@ -37,7 +38,7 @@ label + .toggle:checked + .conflux_config { display: block; }
 
 <br />
 <hr />
-<h4><b>Active <code>loader_config.json</code> configurations</b></h4>
+<h4><b>Active <code>loader_config.json</code> configurations <?= $verboseMode ? '(verbose)':''?></b></h4>
 <hr />
 
 <?
@@ -47,14 +48,22 @@ for($i = 0; $i < count($configs); $i++) {
     $annotatedFields = annotateFieldWithInstrument($datadict, $fields);
     $instruments = empty($config['instruments']) ? [] : collect('instrument_name', $config['instruments']);
     $pagePaths = empty($config['pages']) ? [] : collect('page_path', $config['pages']);
+    $fileRepoInfo = $config['__file_repository'];
+    $pid = $module->getProjectId();
+    $fileRepoLink = "../index.php?pid=".$pid."&route=FileRepositoryController:index&folder_id=".$fileRepoInfo['folder_id'];
 ?>
   <p>
     <b>Module: </b><code><?= $config['__loader_module'] ?></code>
     <br />
     <b>Description:</b> <i>&quot;<?= $config['description'] ?>&quot;</i>
     <br />
+<? if (!empty($fileRepoInfo)) { ?>
+    <b>Folder (File Repository):</b> <a href="<?= $fileRepoLink ?>"><code><?= $config['__directory'] ?></code></a>
+    <br />
+ <? } else { ?>
     <b>Directory: </b><code><?= $config['__directory'] ?></code>
     <br />
+<? }?>
 <? if (!empty($fields)) { ?>
     Fields targeted: <code><?= implode(', ', $annotatedFields) ?></code>
     <br />
