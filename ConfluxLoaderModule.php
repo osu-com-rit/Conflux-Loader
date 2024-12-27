@@ -119,7 +119,7 @@ class ConfluxLoaderModule extends \ExternalModules\AbstractExternalModule {
                 where project_id = ?
             )
             select /*+ SET_VAR(cte_max_recursion_depth = 10) */
-                concat(path, '/', doc_name) as file_path, doc_id
+                concat(path, '/', doc_name) as file_path, doc_id, folder_id
             from parent_folder_cte
                 inner join redcap_docs_folders_files using (folder_id)
                 left join redcap_docs_to_edocs using (docs_id)
