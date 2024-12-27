@@ -41,7 +41,7 @@ label + .toggle:checked + .conflux_config { display: block; }
 <h4><b>Active <code>loader_config.json</code> configurations <?= $verboseMode ? '(verbose)':''?></b></h4>
 <hr />
 
-<?
+<?php
 for($i = 0; $i < count($configs); $i++) {
     $config = $configs[$i];
     $fields = empty($config['fields']) ? [] : collect('field_name', $config['fields']);
@@ -57,25 +57,25 @@ for($i = 0; $i < count($configs); $i++) {
     <br />
     <b>Description:</b> <i>&quot;<?= $config['description'] ?>&quot;</i>
     <br />
-<? if (!empty($fileRepoInfo)) { ?>
+<?php if (!empty($fileRepoInfo)) { ?>
     <b>Folder (File Repository):</b> <a href="<?= $fileRepoLink ?>"><code><?= $config['__directory'] ?></code></a>
     <br />
- <? } else { ?>
+ <?php } else { ?>
     <b>Directory: </b><code><?= $config['__directory'] ?></code>
     <br />
-<? }?>
-<? if (!empty($fields)) { ?>
-    Fields targeted: <code><?= implode(', ', $annotatedFields) ?></code>
+<?php } ?>
+<?php if (!empty($fields)) { ?>
+    Fields targeted: <code><?= @implode(', ', $annotatedFields) ?></code>
     <br />
-<? } ?>
-<? if (!empty($instruments)) { ?>
-    Instruments targeted: <code><?= implode(', ', $instruments) ?></code>
+<?php } ?>
+<?php if (!empty($instruments)) { ?>
+    Instruments targeted: <code><?= @implode(', ', $instruments) ?></code>
     <br />
-<? } ?>
-<? if (!empty($pagePaths)) { ?>
-    Pages targeted: <code><?= implode(', ', $pagePaths) ?></code>
+<?php } ?>
+<?php if (!empty($pagePaths)) { ?>
+    Pages targeted: <code><?= @implode(', ', $pagePaths) ?></code>
     <br />
-<? } ?>
+<?php } ?>
   </p>
   <label for="toggle_<?= $i ?>"><b><u>Show Config</b></u></label>
   <input class="toggle" type="checkbox" id="toggle_<?= $i ?>" />
@@ -83,4 +83,4 @@ for($i = 0; $i < count($configs); $i++) {
 <?= json_encode($abridgedConfigs[$i], JSON_PRETTY_PRINT) ?>
   </pre>
   <hr />
-<? } ?>
+<?php } ?>
